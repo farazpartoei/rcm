@@ -1,0 +1,26 @@
+#!/bin/bash
+keyFile="/Users/farazpartoei/.ssh/id_rsa"
+cmd_file="./command_book_sample.json"
+hosts=$(cat "$cmd_file")
+
+if ! command -v jq > /dev/null; then
+  printf "Please install jq package to continue\n"
+  exit
+fi
+
+for host in $(echo "$hosts" | jq "to_entries[] | select(.value.restricted|not) | .key")
+do
+  ip=$(echo "$hosts" | jq ."$host".ip | sed 's/["\n\r]//g')
+  port=$(echo "$hosts" | jq ."$host".port | sed 's/["\n\r]//g')
+  cmds=$(echo "$hosts" | jq ."$host".commands[] )
+
+  IFS=$'\n'
+  for cmd in $cmds
+  do
+    echo "$host":"$cmd"
+    ssh -i "$keyFile" -p "$port" root@"$ip" \"$cmd\"
+
+  done
+  printf "\n-------------------------------------------------------\n"
+
+done
